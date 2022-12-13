@@ -18,35 +18,32 @@ from PIL import Image
 # This custom dataset class has been derived from above two sources.
 class FacesDataset(Dataset):
     def __init__(self, path, transform=None):
-        # self.img_dir = path
+        #self.img_dir = path
         self.transform = transform
-        self.image_path_list = path
-        self.hr_height = 128
-        self.hr_width = 128
-
+        self.image_path = path
         self.hr_transform = transforms.Compose(
-            [
-                transforms.Resize((self.hr_height, self.hr_height), Image.BICUBIC),
-                transforms.ToTensor(),  # converts a 255 image to 0-1
-            ])
-
+        [
+            transforms.Resize((256, 256)), 
+            transforms.ToTensor(), # converts a 255 image to 0-1
+        ])
+        
         self.lr_transform = transforms.Compose(
-            [
-                transforms.Resize((self.hr_height // 4, self.hr_height // 4), Image.BICUBIC),
-                transforms.Resize((self.hr_height, self.hr_height), Image.BICUBIC),
-                transforms.ToTensor()
-
-            ])
-
+        [
+            transforms.Resize((256//4, 256//4)), 
+            transforms.Resize((256, 256), Image.BICUBIC), 
+            transforms.ToTensor()
+            
+            
+        ])
+        
     def __len__(self):
-        return len(self.image_path_list)
+        return len(self.image_path)
+    
+    def __getitem__(self,idx):
+        image_hr = Image.open(self.image_path[idx][0])
+        image_lr = Image.open(self.image_path[idx][1])
 
-    def __getitem__(self, idx):
-        image = Image.open(self.image_path_list[idx])
-        image_lr = self.lr_transform(image)
-        image_hr = self.hr_transform(image)
-
+        image_lr = self.lr_transform(image_lr)
+        image_hr = self.hr_transform(image_hr)
+        
         return {"lr": image_lr, "hr": image_hr}
-
-
-
