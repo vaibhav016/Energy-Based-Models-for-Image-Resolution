@@ -241,3 +241,162 @@ class DeepEnergyModel(pl.LightningModule):
         self.log('val_contrastive_divergence', cdiv)
         self.log('val_fake_out', fake_out.mean())
         self.log('val_real_out', real_out.mean())
+        
+
+#SR Resnet Generator for SR Gan
+class SRResNet(nn.Module):
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            channels: int,
+            num_rcb: int,
+            upscale_factor: int
+    ):
+        super(SRResNet, self).__init__()
+        # Low frequency information extraction layer
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels, channels, (9, 9), (1, 1), (4, 4)),
+            nn.PReLU(),
+        )
+
+        # High frequency information extraction block
+        trunk = []
+        for _ in range(num_rcb):
+            trunk.append(_ResidualConvBlock(channels))
+        self.trunk = nn.Sequential(*trunk)
+
+        # High-frequency information linear fusion layer
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(channels),
+        )
+
+        # zoom block
+        upsampling = []
+        if upscale_factor == 2 or upscale_factor == 4 or upscale_factor == 8:
+            for _ in range(int(math.log(upscale_factor, 2))):
+                upsampling.append(_UpsampleBlock(channels, 2))
+        elif upscale_factor == 3:
+            upsampling.append(_UpsampleBlock(channels, 3))
+        self.upsampling = nn.Sequential(*upsampling)
+
+        # reconstruction block
+        self.conv3 = nn.Conv2d(channels, out_channels, (9, 9), (1, 1), (4, 4))
+
+        # Initialize neural network weights
+        self._initialize_weights()
+
+    def forward(self, x: Tensor):
+        return self._forward_impl(x)
+
+    # Support torch.script function
+    def _forward_impl(self, x: Tensor):
+        out1 = self.conv1(x)
+        out = self.trunk(out1)
+        out2 = self.conv2(out)
+        out = torch.add(out1, out2)
+        out = self.upsampling(out)
+        out = self.conv3(out)
+
+        out = torch.clamp_(out, 0.0, 1.0)
+
+        return out
+
+    def _initialize_weights(self):
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+
+
+class _ResidualConvBlock(nn.Module):
+    def __init__(self, channels: int):
+        super(_ResidualConvBlock, self).__init__()
+        self.rcb = nn.Sequential(
+            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(channels),
+            nn.PReLU(),
+            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(channels),
+        )
+
+    def forward(self, x: Tensor):
+        identity = x
+
+        out = self.rcb(x)
+
+        out = torch.add(out, identity)
+
+        return out
+
+
+class _UpsampleBlock(nn.Module):
+    def __init__(self, channels: int, upscale_factor: int):
+        super(_UpsampleBlock, self).__init__()
+        self.upsample_block = nn.Sequential(
+            nn.Conv2d(channels, channels * upscale_factor * upscale_factor, (3, 3), (1, 1), (1, 1)),
+            nn.PixelShuffle(2),
+            nn.PReLU(),
+        )
+
+    def forward(self, x: Tensor):
+        out = self.upsample_block(x)
+
+        return out
+    
+    
+    
+# Discriminator model for SRGAN
+class Discriminator(nn.Module):
+    def __init__(self):
+        super(Discriminator, self).__init__()
+        self.features = nn.Sequential(
+            # input size. (3) x 256 x 256
+            nn.Conv2d(3, 64, (3, 3), (1, 1), (1, 1), bias=True),
+            nn.LeakyReLU(0.2, True),
+            # state size. (64) x 128 x 128
+            nn.Conv2d(64, 64, (3, 3), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(64, 128, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+            # state size. (128) x 64 x 64
+            nn.Conv2d(128, 128, (3, 3), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(128, 256, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+            # state size. (256) x 32 x 32
+            nn.Conv2d(256, 256, (3, 3), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(256, 512, (3, 3), (1, 1), (1, 1), bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+            # state size. (512) x 16 x 16
+            nn.Conv2d(512, 512, (3, 3), (2, 2), (1, 1), bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 16 * 16, 1024),
+            nn.LeakyReLU(0.2, True),
+            nn.Linear(1024, 1),
+        )
+
+    def forward(self, x: Tensor):
+        # Input image size must equal 256
+        assert x.shape[2] == 256 and x.shape[3] == 256, "Image shape must equal 256 X 256"
+
+        out = self.features(x)
+        out = torch.flatten(out, 1)
+        out = self.classifier(out)
+
+        return out
