@@ -46,4 +46,4 @@ class FacesDataset(Dataset):
         image_lr = self.lr_transform(image_lr)
         image_hr = self.hr_transform(image_hr)
         
-        return {"lr": image_lr, "hr": image_hr}
+        return {"lr": image_lr, "hr": image_hr, 'img_name':self.image_path[idx][0].split('/')[-1]}
