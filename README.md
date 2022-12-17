@@ -18,13 +18,13 @@
 
 <h4 align="centre"> 
     <p align="centre" > High Res, Low Res and EBM output  </p>
-    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/red_panda.png" width="700" height="150" />
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/red_panda.png" width="700" height="200" />
 </h4>
 
 
 <h4 align="centre"> 
     <p align="centre" > High Res, Low Res and EBM output  </p>
-    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/camera.png" width="700" height="150" />
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/camera.png" width="700" height="200" />
 </h4>
 
 ## Supervised by Prof. Chinmay Hegde and Prof Arslan Mosenia 
