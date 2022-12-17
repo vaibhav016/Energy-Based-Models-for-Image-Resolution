@@ -32,7 +32,7 @@
 ### Built by 
 - Vaibhav Singh (vs2410)
 - Sindhu Bhoopalam Dinesh (sb8019)
-- Sourabh Kumar Bhattacharjee (kb5275)
+- Sourabh Kumar Bhattacharjee (skb5275)
 
 
 <h4 align="centre"> 
