@@ -81,7 +81,6 @@ EBM Colab Notebook: (https://colab.research.google.com/drive/1Zg4LsIeLAQnVwEu8nT
 SRGAN Colab Notebook: (https://colab.research.google.com/drive/1CeNWaI_EwDiMzXHtIzg1IN3BGjX3FDaM?usp=sharing)
 
 ### Training Dynamics 
-
 <h4 align="centre"> 
     <p align="centre">EBM Contrastive Loss dynamics</p> 
     <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/contrastive_loss.png" width="750" height="300" />
