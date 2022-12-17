@@ -39,6 +39,7 @@
     <p align="centre" > Typical Energy Surface Evolution </p>
     <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/ebm.png" width="600" height="250" />
 </h4>
+
 ## Table of Contents
 
 <!-- TOC -->
