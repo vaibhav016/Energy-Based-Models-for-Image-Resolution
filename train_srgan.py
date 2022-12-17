@@ -1,78 +1,59 @@
 from __future__ import print_function, division
-from torch.utils.data import Dataset
-import os
-import pandas as pd
-import random
-from skimage import io, transform
-import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
-from PIL import Image
-# import pytorch_lightning as pl
-import glob 
 
+# import pytorch_lightning as pl
+import glob
+## Standard libraries
+import os
+import random
+
+# %matplotlib inline
+# from IPython.display import set_matplotlib_formats
+# set_matplotlib_formats('svg', 'pdf') # For export
+import matplotlib
+## Imports for plotting
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 ## PyTorch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.data as data
 import torch.optim as optim
-from torch.optim import lr_scheduler
+from sklearn.model_selection import train_test_split
 from torch import Tensor
+from torch.optim import lr_scheduler
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
-
 # Torchvision
-import torchvision
-#from torchvision.datasets import MNIST
-from torchvision import transforms
+# from torchvision.datasets import MNIST
 from torchvision import models
 from torchvision import transforms
 from torchvision.models.feature_extraction import create_feature_extractor
-from sklearn.model_selection import train_test_split
 
-
-## Standard libraries
-import os
-import json
-import math
-import numpy as np 
-import random
-
-## Imports for plotting
-import matplotlib.pyplot as plt
-from matplotlib import cm
-#%matplotlib inline 
-# from IPython.display import set_matplotlib_formats
-# set_matplotlib_formats('svg', 'pdf') # For export
-from matplotlib.colors import to_rgb
-import matplotlib
-from mpl_toolkits.mplot3d.axes3d import Axes3D
-from mpl_toolkits.mplot3d import proj3d
 matplotlib.rcParams['lines.linewidth'] = 2.0
 import seaborn as sns
+
 sns.reset_orig()
 
 from tqdm import tqdm
 import time
 
-#Import metrics
+# Import metrics
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 from statistics import mean
 
-#import models
+# import models
 
-from model import SRResNet, _ResidualConvBlock, _UpsampleBlock, Discriminator
-from dataset import FacesDataset
+from model import SRResNet, Discriminator
+from dataset import DataDiv2k, build_data_loader
 
 # import wget
 
-#Hyperparameters
-#Set Batch Size
+# Hyperparameters
+# Set Batch Size
 train_batch_size = 8
 
-#epochs
+# epochs
 epochs = 20
 
 # Optimizer parameter
@@ -99,7 +80,7 @@ feature_model_extractor_node = "features.35"
 feature_model_normalize_mean = [0.485, 0.456, 0.406]
 feature_model_normalize_std = [0.229, 0.224, 0.225]
 
-#Seed
+# Seed
 SEED = 1234
 
 random.seed(SEED)
@@ -108,52 +89,53 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 
-#Set Model Name
+# Set Model Name
 modelName = 'SRGAN'
 
-
-#Set paths
-highRes = 'data/DIV2K_train_HR/'
-lowRes = 'data/DIV2K_train_LR_mild/'
+# Set paths
+highRes = 'Data/DIV2K_train_HR/'
+lowRes = 'Data/DIV2K_train_LR_mild/'
 modelPath = 'Saved Models/' + modelName + '/'
 outputPath = 'outputs/' + modelName + '/'
 resultPath = 'results/' + modelName + '/'
 
-
 # Store Image Paths
-hr_images = glob.glob(highRes + '*.png') #returns path of images
-#print(len(hr_images))
+hr_images = glob.glob(highRes + '*.png')  # returns path of images
+# print(len(hr_images))
 
-lr_images = glob.glob(lowRes + '*.png') #returns path of images
-#print(len(lr_images))
+lr_images = glob.glob(lowRes + '*.png')  # returns path of images
+# print(len(lr_images))
 
-#create folders to store experiment results, models, outputs
+# create folders to store experiment results, models, outputs
 if not os.path.exists(modelPath):
-  os.makedirs(modelPath)
+    os.makedirs(modelPath)
 
 if not os.path.exists(outputPath):
-  os.makedirs(outputPath)
+    os.makedirs(outputPath)
 
 if not os.path.exists(resultPath):
-  os.makedirs(resultPath)  
+    os.makedirs(resultPath)
 
-#func
+
+# func
 def load_dataset():
-  #Create Dataloaders
-  train_paths, test_paths = train_test_split(sorted(zip(sorted(hr_images),sorted(lr_images))), test_size=0.02, random_state=42)
+    # Create Dataloaders
+    train_paths, test_paths = train_test_split(sorted(zip(sorted(hr_images), sorted(lr_images))), test_size=0.02, random_state=42)
 
-  train_dataloader = DataLoader(FacesDataset(train_paths), batch_size=train_batch_size, shuffle=True)
-  test_dataloader = DataLoader(FacesDataset(test_paths), batch_size=1, shuffle = True)
+    train_dataloader = DataLoader(DataDiv2k(train_paths), batch_size=train_batch_size, shuffle=True)
+    test_dataloader = DataLoader(DataDiv2k(test_paths), batch_size=1, shuffle=True)
 
-  return train_dataloader, test_dataloader
+    return train_dataloader, test_dataloader
 
-#load datasets
-train_dataloader, test_dataloader = load_dataset()
+
+# load datasets
+train_dataloader, test_dataloader = build_data_loader(config)
 
 # Set Device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-#Define class for content loss using VGG 16
+
+# Define class for content loss using VGG 16
 class _ContentLoss(nn.Module):
     """Constructs a content loss function based on the VGG19 network.
     Using high-level feature mapping layers from the latter layers will focus more on the texture content of the image.
@@ -203,25 +185,25 @@ class _ContentLoss(nn.Module):
 
 # function to build model 
 def build_model():
-  #Generator
-  g_model = SRResNet(upscale_factor=1, 
-                     in_channels = 3, 
-                     out_channels = 3, 
-                     channels = 64, 
-                     num_rcb = 16).to(device=device)
-  
-  #Discriminator
-  d_model = Discriminator().to(device=device)
+    # Generator
+    g_model = SRResNet(upscale_factor=1,
+                       in_channels=3,
+                       out_channels=3,
+                       channels=64,
+                       num_rcb=16).to(device=device)
 
-  return d_model, g_model
+    # Discriminator
+    d_model = Discriminator().to(device=device)
+
+    return d_model, g_model
 
 
-#function to initialize losses for generator and discriminator
-def define_loss(): 
+# function to initialize losses for generator and discriminator
+def define_loss():
     pixel_criterion = nn.MSELoss()
     content_criterion = _ContentLoss(feature_model_extractor_node=feature_model_extractor_node,
-                                           feature_model_normalize_mean=feature_model_normalize_mean,
-                                           feature_model_normalize_std=feature_model_normalize_std)
+                                     feature_model_normalize_mean=feature_model_normalize_mean,
+                                     feature_model_normalize_std=feature_model_normalize_std)
     adversarial_criterion = nn.BCEWithLogitsLoss()
 
     # Transfer to CUDA
@@ -232,7 +214,7 @@ def define_loss():
     return pixel_criterion, content_criterion, adversarial_criterion
 
 
-#function to initialize optimizers for generator and discriminator
+# function to initialize optimizers for generator and discriminator
 def define_optimizer(d_model, g_model):
     d_optimizer = optim.Adam(d_model.parameters(),
                              model_lr,
@@ -244,11 +226,11 @@ def define_optimizer(d_model, g_model):
                              model_betas,
                              model_eps,
                              model_weight_decay)
-    
+
     return d_optimizer, g_optimizer
 
 
-#function to initialize schedulers for generator and discriminator
+# function to initialize schedulers for generator and discriminator
 def define_scheduler(d_optimizer, g_optimizer):
     d_scheduler = lr_scheduler.StepLR(d_optimizer,
                                       lr_scheduler_step_size,
@@ -257,6 +239,7 @@ def define_scheduler(d_optimizer, g_optimizer):
                                       lr_scheduler_step_size,
                                       lr_scheduler_gamma)
     return d_scheduler, g_scheduler
+
 
 # Function for one step of training
 def training_step(
@@ -272,16 +255,14 @@ def training_step(
         ssim_model,
         epoch,
         writer
-    ):
-    
-    
+):
     # Calculate how many batches of data are in each Epoch
     num_batches = len(train_dataloader)
-    
-    #initialize performance metrics lists
+
+    # initialize performance metrics lists
     d_losses = []
     g_losses = []
-    pixel_losses = [] 
+    pixel_losses = []
     content_losses = []
     adversarial_losses = []
     d_hr_probabilities = []
@@ -298,7 +279,7 @@ def training_step(
 
     for i in tqdm(range(num_batches)):
 
-        #get batch
+        # get batch
         batch_data = next(dataloader_iter)
 
         # Transfer in-memory data to CUDA devices to speed up training
@@ -356,7 +337,7 @@ def training_step(
 
         # Calculate psnr and ssim
         psnr_train = psnr_model(hr.permute(0, 2, 3, 1).detach().cpu().numpy(), fk.permute(0, 2, 3, 1).detach().cpu().numpy())
-        ssim_train = ssim_model(hr.permute(0, 2, 3, 1).detach().cpu().numpy(), fk.permute(0, 2, 3, 1).detach().cpu().numpy(), multichannel = True)
+        ssim_train = ssim_model(hr.permute(0, 2, 3, 1).detach().cpu().numpy(), fk.permute(0, 2, 3, 1).detach().cpu().numpy(), multichannel=True)
 
         # Calculate the generator total loss value
         g_loss = pixel_loss + content_loss + adversarial_loss
@@ -373,19 +354,18 @@ def training_step(
         d_hr_probability = torch.sigmoid_(torch.mean(hr_output.detach()))
         d_fk_probability = torch.sigmoid_(torch.mean(fk_output.detach()))
 
-        #print(d_hr_probabilities)
+        # print(d_hr_probabilities)
 
         # Statistical accuracy and loss value for terminal data output
         d_losses.append(d_loss.item())
         g_losses.append(g_loss.item())
-        pixel_losses.append(pixel_loss.item()) 
+        pixel_losses.append(pixel_loss.item())
         content_losses.append(content_loss.item())
-        adversarial_losses.append(adversarial_loss.item()) 
-        d_hr_probabilities.append(d_hr_probability.item()) 
-        d_fk_probabilities.append(d_fk_probability.item()) 
+        adversarial_losses.append(adversarial_loss.item())
+        d_hr_probabilities.append(d_hr_probability.item())
+        d_fk_probabilities.append(d_fk_probability.item())
         psnrs.append(psnr_train)
         ssims.append(ssim_train)
-
 
         # Write the data during training to the training log file
         if i % train_print_frequency == 0:
@@ -399,32 +379,32 @@ def training_step(
             writer.add_scalar("Train/D(FK)_Probability", d_fk_probability.item(), iters)
             writer.add_scalar("Train/PSNR", psnr_train, iters)
             writer.add_scalar("Train/SSIM", ssim_train, iters)
-            #progress.display(batch_index + 1)
+            # progress.display(batch_index + 1)
 
         del hr, lr, fk, d_loss, g_loss, pixel_loss, content_loss, adversarial_loss, d_hr_probability, d_fk_probability, psnr_train, ssim_train
         torch.cuda.empty_cache()
-    
+
     return (mean(d_losses),
-           mean(g_losses), 
-           mean(pixel_losses), 
-           mean(content_losses), 
-           mean(adversarial_losses), 
-           mean(d_hr_probabilities), 
-           mean(d_fk_probabilities),
-           mean(psnrs),
-           mean(ssims))
+            mean(g_losses),
+            mean(pixel_losses),
+            mean(content_losses),
+            mean(adversarial_losses),
+            mean(d_hr_probabilities),
+            mean(d_fk_probabilities),
+            mean(psnrs),
+            mean(ssims))
 
 
 # Function for one step of validation
 def validation_step(
-        g_model, 
+        g_model,
         valid_dataloader,
         epoch,
         writer,
         psnr_model,
         ssim_model,
         mode
-    ):
+):
     # Initialize lists for storing metrics
     psnres = []
     ssimes = []
@@ -443,11 +423,11 @@ def validation_step(
 
     with torch.no_grad():
         for i in tqdm(range(n)):
-        # while batch_data is not None:
-            
-            #get batch
+            # while batch_data is not None:
+
+            # get batch
             batch_data = next(dataloader_iter)
-            
+
             # Transfer the in-memory data to the CUDA device to speed up the test
             hr = batch_data["hr"].to(device)
             lr = batch_data["lr"].to(device)
@@ -457,8 +437,8 @@ def validation_step(
 
             # Statistical loss value for terminal data output
             psnr = psnr_model(hr[0].permute(1, 2, 0).cpu().numpy(), fk[0].permute(1, 2, 0).cpu().numpy())
-            ssim = ssim_model(hr[0].permute(1, 2, 0).cpu().numpy(), fk[0].permute(1, 2, 0).cpu().numpy(), multichannel = True)
-            psnres.append(psnr) 
+            ssim = ssim_model(hr[0].permute(1, 2, 0).cpu().numpy(), fk[0].permute(1, 2, 0).cpu().numpy(), multichannel=True)
+            psnres.append(psnr)
             ssimes.append(ssim)
 
             del hr, lr, fk, psnr, ssim
@@ -474,271 +454,264 @@ def validation_step(
 
 
 # Function to save performance summary 
-def save_train_summary(epochs, train_d_losses, train_g_losses, train_pixel_losses, train_content_losses, 
+def save_train_summary(epochs, train_d_losses, train_g_losses, train_pixel_losses, train_content_losses,
                        train_adversarial_losses, train_d_hr_probabilities, train_d_fk_probabilities, train_psnrs,
                        train_ssims, val_psnrs, val_ssims):
+    epoch_range = [i for i in range(epochs)]
 
-  epoch_range = [i for i in range(epochs)]
-
-  df = pd.DataFrame(list(zip(epoch_range,
-                             train_d_losses,
-                             train_g_losses,
-                             train_pixel_losses,
-                             train_content_losses,
-                             train_adversarial_losses,
-                             train_d_hr_probabilities,
-                             train_d_fk_probabilities,
-                             train_psnrs,
-                             train_ssims,
-                             val_psnrs,
-                             val_ssims)),
-                    columns = ['epoch', 'train_d_loss', 'train_g_loss', 'train_pixel_loss', 'train_content_loss', 'train_adversarial_loss',
+    df = pd.DataFrame(list(zip(epoch_range,
+                               train_d_losses,
+                               train_g_losses,
+                               train_pixel_losses,
+                               train_content_losses,
+                               train_adversarial_losses,
+                               train_d_hr_probabilities,
+                               train_d_fk_probabilities,
+                               train_psnrs,
+                               train_ssims,
+                               val_psnrs,
+                               val_ssims)),
+                      columns=['epoch', 'train_d_loss', 'train_g_loss', 'train_pixel_loss', 'train_content_loss', 'train_adversarial_loss',
                                'train_d_hr_probability', 'train_d_fk_probability', 'train_psnr', 'train_ssim', 'val_psnr', 'val_ssim'])
-  
-  df.to_csv(resultPath + 'TrainSummary_SRGAN.csv')
 
+    df.to_csv(resultPath + 'TrainSummary_SRGAN.csv')
 
 
 # Function to define training loop
-def train_model(epochs = 10):
+def train_model(epochs=10):
+    # initialize training to generate network evaluation indicators
+    best_psnr = 0.0
+    best_ssim = 0.0
 
-  # initialize training to generate network evaluation indicators
-  best_psnr = 0.0
-  best_ssim = 0.0
+    # Initiate lists for performance summary
+    train_d_losses = []
+    train_g_losses = []
+    train_pixel_losses = []
+    train_content_losses = []
+    train_adversarial_losses = []
+    train_d_hr_probabilities = []
+    train_d_fk_probabilities = []
+    train_psnrs = []
+    train_ssims = []
+    val_psnrs = []
+    val_ssims = []
 
-  #Initiate lists for performance summary
-  train_d_losses = [] 
-  train_g_losses = []
-  train_pixel_losses = [] 
-  train_content_losses = []
-  train_adversarial_losses = [] 
-  train_d_hr_probabilities = []
-  train_d_fk_probabilities = []
-  train_psnrs = []
-  train_ssims = []
-  val_psnrs = []
-  val_ssims = []
+    # load Model
+    d_model, g_model = build_model()
 
-  # load Model
-  d_model, g_model = build_model()
+    # load Dataset
+    train_dataloader, test_dataloader = load_dataset()
 
-  # load Dataset
-  train_dataloader, test_dataloader = load_dataset()
+    # load loss functions
+    pixel_criterion, content_criterion, adversarial_criterion = define_loss()
 
-  # load loss functions
-  pixel_criterion, content_criterion, adversarial_criterion = define_loss()
+    # load optimizers
+    d_optimizer, g_optimizer = define_optimizer(d_model, g_model)
 
-  # load optimizers
-  d_optimizer, g_optimizer = define_optimizer(d_model, g_model)
+    # load schedulers
+    d_scheduler, g_scheduler = define_scheduler(d_optimizer, g_optimizer)
 
-  # load schedulers
-  d_scheduler, g_scheduler = define_scheduler(d_optimizer, g_optimizer)
+    # check if pre-trained model already exists, if yes then load
+    if os.path.exists(modelPath + 'best_d_model_srgan.pkl'):
+        d_model.load_state_dict(torch.load(modelPath + 'best_d_model_srgan.pkl')['model_state_dict'])
 
-  # check if pre-trained model already exists, if yes then load
-  if os.path.exists(modelPath + 'best_d_model_srgan.pkl'):
-    d_model.load_state_dict(torch.load(modelPath + 'best_d_model_srgan.pkl')['model_state_dict'])
-  
-  if os.path.exists(modelPath + 'best_g_model_srgan.pkl'):
+    if os.path.exists(modelPath + 'best_g_model_srgan.pkl'):
+        g_model.load_state_dict(torch.load(modelPath + 'best_g_model_srgan.pkl')['model_state_dict'])
+
+    # Create training process log file
+    writer = SummaryWriter(resultPath + 'SRGAN_summary')
+
+    # note train loop start time
+    train_loop_start_time = time.time()
+
+    for epoch in range(epochs):
+
+        print('\nEpoch: ', epoch, '.....')
+
+        train_start_time = time.time()
+
+        print('Training....')
+        # take a training step
+        (d_loss,
+         g_loss,
+         pixel_loss,
+         content_loss,
+         adversarial_loss,
+         d_hr_probability,
+         d_fk_probability,
+         psnr_train,
+         ssim_train) = training_step(d_model,
+                                     g_model,
+                                     train_dataloader,
+                                     pixel_criterion,
+                                     content_criterion,
+                                     adversarial_criterion,
+                                     d_optimizer,
+                                     g_optimizer,
+                                     peak_signal_noise_ratio,
+                                     structural_similarity,
+                                     epoch,
+                                     writer)
+
+        # add to performance summary lists
+        train_d_losses.append(d_loss)
+        train_g_losses.append(g_loss)
+        train_pixel_losses.append(pixel_loss)
+        train_content_losses.append(content_loss)
+        train_adversarial_losses.append(adversarial_loss)
+        train_d_hr_probabilities.append(d_hr_probability)
+        train_d_fk_probabilities.append(d_fk_probability)
+        train_psnrs.append(psnr_train)
+        train_ssims.append(ssim_train)
+
+        # note training end time and val start time
+        train_end_time = time.time()
+
+        # Print Training time
+        print('Training completed in ', float(train_end_time - train_start_time) / 60.0, ' mins')
+
+        print('Validation....')
+        # take a validation step
+        psnr_val, ssim_val = validation_step(g_model,
+                                             test_dataloader,
+                                             epoch,
+                                             writer,
+                                             peak_signal_noise_ratio,
+                                             structural_similarity,
+                                             'Valid')
+
+        # add to performance summary lists
+        val_psnrs.append(psnr_val)
+        val_ssims.append(ssim_val)
+
+        # note val end time
+        val_end_time = time.time()
+
+        # Print validation time
+        print('Validation completed in ', float(val_end_time - train_end_time) / 60.0, ' mins')
+
+        # Print Validation Performance
+        print('Epoch: ', epoch, '---> Validation PSNR: ', psnr_val)
+        print('Epoch: ', epoch, '---> Validation SSIM: ', ssim_val)
+
+        # Update LR
+        d_scheduler.step()
+        g_scheduler.step()
+
+        # if avg psnr/ssim improved, then save model
+        if psnr_val > best_psnr or ssim_val > best_ssim:
+            best_psnr = max(psnr_val, best_psnr)
+            best_ssim = max(ssim_val, best_ssim)
+
+            print('Saving model ...')
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': d_model.state_dict(),
+                'optimizer_state_dict': d_optimizer.state_dict(),
+                'scheduler': d_scheduler,
+                'd_loss': d_loss,
+                'pixel_loss': pixel_loss,
+                'content_loss': content_loss,
+                'adversarial_losses': adversarial_loss,
+                'd_hr_probability': d_hr_probability,
+                'd_fk_probability': d_fk_probability
+            }
+                , modelPath + 'best_d_model_srgan.pkl')
+
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': g_model.state_dict(),
+                'optimizer_state_dict': g_optimizer.state_dict(),
+                'scheduler': g_scheduler,
+                'g_loss': g_loss,
+                'pixel_loss': pixel_loss,
+                'content_loss': content_loss,
+                'adversarial_losses': adversarial_loss,
+                'd_hr_probability': d_hr_probability,
+                'd_fk_probability': d_fk_probability
+            }
+                , modelPath + 'best_g_model_srgan.pkl')
+
+    # Save Performance metrics
+    save_train_summary(epochs,
+                       train_d_losses,
+                       train_g_losses,
+                       train_pixel_losses,
+                       train_content_losses,
+                       train_adversarial_losses,
+                       train_d_hr_probabilities,
+                       train_d_fk_probabilities,
+                       train_psnrs,
+                       train_ssims,
+                       val_psnrs,
+                       val_ssims)
+
+    # Testing
+
+    print('Testing....')
+
+    # note test start time
+    test_start_time = time.time()
+
+    # Load Best Model
     g_model.load_state_dict(torch.load(modelPath + 'best_g_model_srgan.pkl')['model_state_dict'])
 
+    # run testing loop
+    psnr_testing, ssim_testing = validation_step(g_model,
+                                                 test_dataloader,
+                                                 epoch,
+                                                 writer,
+                                                 peak_signal_noise_ratio,
+                                                 structural_similarity,
+                                                 'Test')
 
-  # Create training process log file
-  writer = SummaryWriter(resultPath + 'SRGAN_summary')
+    # note test end time
+    test_end_time = time.time()
 
-  # note train loop start time
-  train_loop_start_time = time.time()
+    # Print testing time and performance
+    print('Testing completed in ', float(test_end_time - test_start_time) / 60.0, ' mins')
+    print('\nTest PSNR: ', psnr_testing)
+    print('Test SSIM: ', ssim_testing)
 
-  for epoch in range(epochs):
-
-      print('\nEpoch: ', epoch, '.....')
-
-      train_start_time = time.time()
-
-      print('Training....')
-      # take a training step
-      (d_loss, 
-      g_loss, 
-      pixel_loss, 
-      content_loss, 
-      adversarial_loss, 
-      d_hr_probability, 
-      d_fk_probability,
-      psnr_train,
-      ssim_train) = training_step(d_model,
-                                        g_model,
-                                        train_dataloader,
-                                        pixel_criterion,
-                                        content_criterion,
-                                        adversarial_criterion,
-                                        d_optimizer,
-                                        g_optimizer,
-                                        peak_signal_noise_ratio,
-                                        structural_similarity,
-                                        epoch,
-                                        writer)
-
-      #add to performance summary lists
-      train_d_losses.append(d_loss) 
-      train_g_losses.append(g_loss) 
-      train_pixel_losses.append(pixel_loss) 
-      train_content_losses.append(content_loss) 
-      train_adversarial_losses.append(adversarial_loss)
-      train_d_hr_probabilities.append(d_hr_probability)
-      train_d_fk_probabilities.append(d_fk_probability)
-      train_psnrs.append(psnr_train)
-      train_ssims.append(ssim_train)
-      
-      #note training end time and val start time
-      train_end_time = time.time()
-      
-      #Print Training time
-      print('Training completed in ', float(train_end_time - train_start_time)/60.0, ' mins')
-
-      print('Validation....')
-      # take a validation step
-      psnr_val, ssim_val = validation_step(g_model,
-                                           test_dataloader,
-                                           epoch,
-                                           writer,
-                                           peak_signal_noise_ratio, 
-                                           structural_similarity, 
-                                           'Valid')
-
-      #add to performance summary lists
-      val_psnrs.append(psnr_val)
-      val_ssims.append(ssim_val)
-
-      #note val end time
-      val_end_time = time.time()
-
-      #Print validation time
-      print('Validation completed in ', float(val_end_time - train_end_time)/60.0, ' mins')
-
-      #Print Validation Performance
-      print('Epoch: ', epoch, '---> Validation PSNR: ', psnr_val)
-      print('Epoch: ', epoch, '---> Validation SSIM: ', ssim_val)
-
-      # Update LR
-      d_scheduler.step()
-      g_scheduler.step()
+    # Note and Print total loop time
+    train_loop_end_time = time.time()
+    print('\nTotal Model Training Time: ', float(train_loop_end_time - train_loop_start_time) / 60.0, ' mins')
 
 
-      # if avg psnr/ssim improved, then save model
-      if psnr_val > best_psnr or ssim_val > best_ssim:
-        best_psnr = max(psnr_val, best_psnr)
-        best_ssim = max(ssim_val, best_ssim)
-
-        print('Saving model ...')
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': d_model.state_dict(),
-                    'optimizer_state_dict': d_optimizer.state_dict(),
-                    'scheduler': d_scheduler,
-                    'd_loss': d_loss, 
-                    'pixel_loss': pixel_loss, 
-                    'content_loss': content_loss, 
-                    'adversarial_losses': adversarial_loss, 
-                    'd_hr_probability': d_hr_probability, 
-                    'd_fk_probability': d_fk_probability
-                  }
-                  , modelPath + 'best_d_model_srgan.pkl')
-        
-        torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': g_model.state_dict(),
-                    'optimizer_state_dict': g_optimizer.state_dict(), 
-                    'scheduler':g_scheduler,
-                    'g_loss': g_loss, 
-                    'pixel_loss': pixel_loss, 
-                    'content_loss': content_loss, 
-                    'adversarial_losses': adversarial_loss, 
-                    'd_hr_probability': d_hr_probability, 
-                    'd_fk_probability': d_fk_probability
-                  }
-                  , modelPath + 'best_g_model_srgan.pkl')
-    
-
-  #Save Performance metrics
-  save_train_summary(epochs,
-                     train_d_losses,
-                     train_g_losses,
-                     train_pixel_losses,
-                     train_content_losses,
-                     train_adversarial_losses,
-                     train_d_hr_probabilities,
-                     train_d_fk_probabilities,
-                     train_psnrs,
-                     train_ssims,
-                     val_psnrs,
-                     val_ssims)
-
-
-  #Testing
-
-  print('Testing....')
-  
-  #note test start time
-  test_start_time = time.time()
-
-  #Load Best Model
-  g_model.load_state_dict(torch.load(modelPath + 'best_g_model_srgan.pkl')['model_state_dict'])
-
-  #run testing loop
-  psnr_testing, ssim_testing = validation_step(g_model,
-                                               test_dataloader,
-                                               epoch,
-                                               writer,
-                                               peak_signal_noise_ratio, 
-                                               structural_similarity, 
-                                               'Test')  
-  
-  #note test end time
-  test_end_time = time.time()
-  
-  #Print testing time and performance
-  print('Testing completed in ', float(test_end_time - test_start_time)/60.0, ' mins')
-  print('\nTest PSNR: ', psnr_testing)
-  print('Test SSIM: ', ssim_testing)
-
-  # Note and Print total loop time
-  train_loop_end_time = time.time()
-  print('\nTotal Model Training Time: ', float(train_loop_end_time - train_loop_start_time)/60.0, ' mins')
-
-
-
-#Train the model for specified epochs
+# Train the model for specified epochs
 train_model(epochs)
 
-#Function to plot and save lr, hr and generated image
+
+# Function to plot and save lr, hr and generated image
 def compare_imgs(test_dataloader, model):
-  for i, it in enumerate(test_dataloader):
-    lr, hr = it['lr'].to(device), it['hr'].to(device)
-    gen = model(lr).detach()
-    fig = plt.figure(figsize=(10, 7))
-    fig.suptitle('Image ' + it['img_name'][0], x = 0.5, y = 0.75)
-    fig.add_subplot(1,3,1)
-    plt.title('High Res')
-    plt.imshow(hr[0].permute(1,2,0).cpu().numpy())
-    fig.add_subplot(1,3,2)
-    plt.title('Low Res')
-    plt.imshow(lr[0].permute(1,2,0).cpu().numpy())
-    fig.add_subplot(1,3,3)
-    plt.title(modelName + ' Generated Image')
-    plt.imshow(gen[0].permute(1,2,0).cpu().numpy())
-    
-    #Save comparison image
-    plt.savefig(outputPath + 'comparison_' + modelName + '_' + it['img_name'][0])
+    for i, it in enumerate(test_dataloader):
+        lr, hr = it['lr'].to(device), it['hr'].to(device)
+        gen = model(lr).detach()
+        fig = plt.figure(figsize=(10, 7))
+        fig.suptitle('Image ' + it['img_name'][0], x=0.5, y=0.75)
+        fig.add_subplot(1, 3, 1)
+        plt.title('High Res')
+        plt.imshow(hr[0].permute(1, 2, 0).cpu().numpy())
+        fig.add_subplot(1, 3, 2)
+        plt.title('Low Res')
+        plt.imshow(lr[0].permute(1, 2, 0).cpu().numpy())
+        fig.add_subplot(1, 3, 3)
+        plt.title(modelName + ' Generated Image')
+        plt.imshow(gen[0].permute(1, 2, 0).cpu().numpy())
+
+        # Save comparison image
+        plt.savefig(outputPath + 'comparison_' + modelName + '_' + it['img_name'][0])
 
 
-#make static test dataloader
-_, test_paths = train_test_split(sorted(zip(sorted(hr_images),sorted(lr_images))), test_size=0.02, random_state=42)
-test_dataloader = DataLoader(FacesDataset(test_paths), batch_size=1)
+# make static test dataloader
+_, test_paths = train_test_split(sorted(zip(sorted(hr_images), sorted(lr_images))), test_size=0.02, random_state=42)
+test_dataloader = DataLoader(DataDiv2k(test_paths), batch_size=1)
 
-#build model
+# build model
 _, g_model = build_model()
 
-#load the best model parameters
+# load the best model parameters
 g_model.load_state_dict(torch.load(modelPath + 'best_g_model_srgan.pkl')['model_state_dict'])
 
-#generate and compare images
+# generate and compare images
 compare_imgs(test_dataloader, g_model)

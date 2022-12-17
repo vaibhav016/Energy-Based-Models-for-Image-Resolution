@@ -1,45 +1,88 @@
-# Energy-Based Models for Image resolution
+<h1 align="center">
+<p>Deep Learning (CSGY- 6923) :bar_chart:</p>
+<p>NYU</p>
 
-This project aims at image resolution using Energy-Based Models. 
+<p align="center">
+<img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg">
+<img alt="python" src="https://img.shields.io/badge/python-%3E%3D3.8-blue?logo=python">
+<img alt="pytorch" src="https://img.shields.io/badge/PyTorch-%23EE4C2C3">
+<img alt="PyPI" src="https://img.shields.io/badge/release-v1.0-brightgreen?logo=apache&logoColor=brightgreen">
+</p>
+</h1>
+
+<h2 align="center">
+<p>Image Super Resolution through Energy Based Models</p>
+</h2>
+
+## Supervised by Prof. Chinmay Hegde and Prof Arslan Mosenia 
+
+### Built by 
+- Vaibhav Singh (vs2410)
+- Sindhu Bhoopalam Dinesh (sb8019)
+- Sourabh Kumar Bhattacharjee (kb5275)
 
 
------------------------------------------------------------------------------------------------------------------------
-## Requirements
-The current version of the code has been tested with:
-* `pytorch '1.12.1'`
-* `torchvision 0.13.1`
--------------------------------------------------------------------------------
-## Dataset:
+## Table of Contents
 
-For setting up the pipeline, currently the dataset used is CelebFaces LFW. 
+<!-- TOC -->
 
-http://vis-www.cs.umass.edu/lfw/lfw.tgz
+- [Installation](#installation)  
+- [Training](#Training)  
+     - [EBMS](#EBMS)
+     - [SRGAN](#SRGAN)
+- [Inference](#Inference)
+- [Colab Notebooks](#Colab Notebooks)
+- [Training Dynamics](#Training logs)
 
---------------------------------------------------------------------------
-## Some great resources for EBMS 
 
-* https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/tutorial8/Deep_Energy_Models.html
+<!-- /TOC -->
 
-* https://atcold.github.io/pytorch-Deep-Learning/en/week13/13-1/
+### Installation
 
-* http://www.cs.toronto.edu/~vnair/ciar/lecun1.pdf
+```bash
+https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution.git
+cd Energy-Based-Models-for-Image-Resolution
+```
+1.) Installation on conda environment -  
+```bash
+conda env create --name v_env --file=environments.yml
+```
+2.) Installation via requirements.txt -
+```bash
+pip install requirements.txt
+```
+### Training 
+For Training EBM based model 
+```bash
+python3 ebm.py -tr 1 
+```
+For Training SRGAN model
+```bash
+python3 train_srgan.py -tr 1 -d "data_path" 
+```
 
-* https://openai.com/blog/energy-based-models/
 
-* https://www.kaggle.com/code/balraj98/single-image-super-resolution-gan-srgan-pytorch 
+### Inference 
+For Inference EBM based model 
+```bash
+python3 ebm.py -tr 0
+```
+For Inference SRGAN model
+```bash
+python3 train_srgan.py -tr 0  
+```
 
-In the jupyter notebook, i have attributed the resources so that it becomes clear the source of code.
+### Colab Notebooks
+The above commands are for deploying this project on a server or a cloud. 
+We ran simultanous experiments on google colab and share the following notebooks for easier interpretability. The notebooks can be found in Jupyter Notebook Experiments directory. 
 
-------------------------------------------------------------------------------
+EBM Colab Notebook: (https://colab.research.google.com/drive/1Zg4LsIeLAQnVwEu8nTveQlL6RTefB6pW?usp=sharing)
 
-## Steps to run the code. 
-1) Download the dataset and keep it in the same directory
-2) Install torch and torchvision 
-3) Install pytorch-lighning ` !pip install torch torchvision pytorch-lightning `
-4) Make sure the versions are latest
-5) Run the jupyter notebook (ideally it should run without any error, let me know)
-------------------------------------------------------------------------
-## Current status
-1) The pipeline is working, but i havent checked the math out, we still need to investigate it. 
-2) The model, the way its structured is very rudimentary and raw, nothing is optimal. 
-3) In case we change this idea, we can follow a similar pipeline with relevant changes of components.
+SRGAN Colab Notebook: (https://colab.research.google.com/drive/1CeNWaI_EwDiMzXHtIzg1IN3BGjX3FDaM?usp=sharing)
+
+### Training Dynamics 
+
+<h4 align="centre"> 
+    <p align="centre">EBM Contrastive Loss dynamics</p> 
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/contrastive_loss.png" width="750" height="300" />
+</h4>

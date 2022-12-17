@@ -1,9 +1,29 @@
+import sys
+
 from matplotlib import pyplot as plt
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 from Callbacks import GenerateCallback
+import pytorch_lightning as pl
 from torch.utils.data import Dataset, DataLoader
 
-def generate_images_test(test_dataloader, model):
+from config import Config
+
+def bar_progress(current, total, width=80):
+  progress_message = "Downloading: %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+  # Don't use print() as it will print in new line every time.
+  sys.stdout.write("\r" + progress_message)
+  sys.stdout.flush()
+
+def initialise_configs(args):
+    config = Config(args.config)
+    if args.data_path:
+        config.data_config["data_path"] = args.data_path
+    if args.saved_model:
+        config.data_config["saved_model"] = args.saved_model
+
+    return config
+
+def generate_images_test(test_dataloader, model, device):
   model.to(device)
   pl.seed_everything(43)
   callback = GenerateCallback(batch_size=4, vis_steps=8, num_steps=32)
@@ -18,7 +38,7 @@ def generate_images_test(test_dataloader, model):
   return gen_imgs
 
 
-  def get_metrics(test_dataloader, test_gen_imgs):
+def get_metrics(test_dataloader, test_gen_imgs):
 
   avg_psnr = 0
   avg_ssim = 0
@@ -52,15 +72,15 @@ def generate_images_test(test_dataloader, model):
 
 def compare_imgs(test_dataloader, test_gen_imgs):
     for i, it in enumerate(test_dataloader):
-    lr, hr = it['lr'], it['hr']
-    gen = test_gen_imgs[i]
-    fig = plt.figure(figsize=(10, 7))
-    fig.add_subplot(1,3,1)
-    plt.title('High Res Image')
-    plt.imshow(hr[0].permute(1,2,0).numpy())
-    fig.add_subplot(1,3,2)
-    plt.title('Low Res Image')
-    plt.imshow(lr[0].permute(1,2,0).numpy())
-    fig.add_subplot(1,3,3)
-    plt.title('EBM ResNet Generated Image')
-    plt.imshow(gen[0].permute(1,2,0).numpy())
+        lr, hr = it['lr'], it['hr']
+        gen = test_gen_imgs[i]
+        fig = plt.figure(figsize=(10, 7))
+        fig.add_subplot(1,3,1)
+        plt.title('High Res Image')
+        plt.imshow(hr[0].permute(1,2,0).numpy())
+        fig.add_subplot(1,3,2)
+        plt.title('Low Res Image')
+        plt.imshow(lr[0].permute(1,2,0).numpy())
+        fig.add_subplot(1,3,3)
+        plt.title('EBM ResNet Generated Image')
+        plt.imshow(gen[0].permute(1,2,0).numpy())
