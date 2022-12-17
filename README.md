@@ -31,8 +31,8 @@
      - [EBMS](#EBMS)
      - [SRGAN](#SRGAN)
 - [Inference](#Inference)
-- [Colab Notebooks](#Colab Notebooks)
-- [Training Dynamics](#Training logs)
+- [Colab Notebooks](#ColabNotebooks)
+- [Training Dynamics](#TrainingLogs)
 
 
 <!-- /TOC -->
