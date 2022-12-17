@@ -76,15 +76,22 @@ python3 ebm.py -tr 1
 ```
 For Training SRGAN model
 ```bash
-python3 train_srgan.py -tr 1 -d "data_path" 
+python3 train_srgan.py 
 ```
 
+
+<!---
+python3 train_srgan.py -tr 1 -d "data_path" 
+and here
+-->
 
 ### Inference 
 For Inference EBM based model 
 ```bash
 python3 ebm.py -tr 0
 ```
+
+
 For Inference SRGAN model
 ```bash
 python3 train_srgan.py -tr 0  
