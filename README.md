@@ -22,6 +22,10 @@
 - Sourabh Kumar Bhattacharjee (kb5275)
 
 
+<h4 align="centre"> 
+    <p align="centre" > Typical Energy Surface Evolution </p>
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/ebm.png" width="750" height="300" />
+</h4>
 ## Table of Contents
 
 <!-- TOC -->
@@ -83,5 +87,5 @@ SRGAN Colab Notebook: (https://colab.research.google.com/drive/1CeNWaI_EwDiMzXHt
 ### Training Dynamics 
 <h4 align="centre"> 
     <p align="centre">EBM Contrastive Loss dynamics</p> 
-    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/contrastive_loss.png" width="750" height="300" />
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/contrastive_loss.png" width="700" height="300" />
 </h4>
