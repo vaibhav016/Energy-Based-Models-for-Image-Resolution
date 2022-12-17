@@ -74,7 +74,7 @@ For Training EBM based model
 ```bash
 python3 ebm.py -tr 1 
 ```
-For Training SRGAN model
+For Training and Inference of SRGAN model
 ```bash
 python3 train_srgan.py 
 ```
@@ -89,12 +89,6 @@ and here
 For Inference EBM based model 
 ```bash
 python3 ebm.py -tr 0
-```
-
-
-For Inference SRGAN model
-```bash
-python3 train_srgan.py -tr 0  
 ```
 
 ### Colab Notebooks
