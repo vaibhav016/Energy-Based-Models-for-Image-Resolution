@@ -108,3 +108,13 @@ SRGAN Colab Notebook: (https://colab.research.google.com/drive/1CeNWaI_EwDiMzXHt
     <p align="centre">EBM Contrastive Loss dynamics</p> 
     <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/contrastive_loss.png" width="600" height="300" />
 </h4>
+
+<h4 align="centre"> 
+    <p align="centre">SRGAN Loss dynamics</p> 
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/lossVepoch_SRGAN.png" width="600" height="300" />
+</h4>
+
+<h4 align="centre"> 
+    <p align="centre">SRGAN2 Loss dynamics</p> 
+    <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/lossVepoch_SRGAN2.png" width="600" height="300" />
+</h4>
