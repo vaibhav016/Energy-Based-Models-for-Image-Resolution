@@ -64,7 +64,7 @@ from statistics import mean
 #import models
 
 from model import SRResNet18, _ResidualConvBlock, _UpsampleBlock, Discriminator
-from dataset import FacesDataset
+from dataset import FacesDataset, DataDiv2k, build_data_loader
 
 # import wget
 
@@ -738,3 +738,42 @@ g_model.load_state_dict(torch.load(modelPath + 'best_g_model_srgan2.pkl')['model
 
 #generate and compare images
 compare_imgs(test_dataloader, g_model)
+
+
+### Plot Training Losses
+
+#read results file
+df = pd.read_csv(resultPath + 'TrainSummary_' + modelName + '.csv')
+
+#create list of losses
+epochs = df['epoch'].tolist()
+train_d_losses = df['train_d_loss'].tolist()
+train_g_losses = df['train_g_loss'].tolist()
+train_content_losses = df['train_content_loss'].tolist()
+train_pixel_losses = df['train_pixel_loss'].tolist()
+train_adversarial_losses = df['train_adversarial_loss'].tolist()
+
+
+#Plot losses
+fig, axs = plt.subplots(1, 1, sharex = True)
+
+fig.set_figheight(10)
+fig.set_figwidth(15)
+fig.suptitle('Losses for ' + modelName)
+
+axs.plot(train_d_losses)
+axs.plot(train_g_losses)
+axs.plot(train_content_losses)
+axs.plot(train_pixel_losses)
+axs.plot(train_adversarial_losses)
+
+
+#Label Axes and lines
+axs.set_ylabel('loss')
+axs.set_xlabel('epoch')
+axs.legend(['Discriminator Loss', 'Generator Loss', 'Content Loss', 'Pixel Loss', 'Adversarial Loss'])
+
+#save figure
+fig.savefig(outputPath + 'lossVepoch_' + modelName + '.png')
+
+fig.show()
