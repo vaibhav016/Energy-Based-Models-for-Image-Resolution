@@ -11,10 +11,16 @@
 </h1>
 
 <h2 align="center">
-<p>Image Super Resolution through Energy Based Models</p>
+<p>Image Super Resolution through Energy Based Models </p>
 </h2>
 
-## Supervised by Prof. Chinmay Hegde and Prof. Arslan Mosenia 
+
+
+<h3 align="center">
+<p>
+Supervised by Prof. Chinmay Hegde and Prof. Arslan Mosenia
+</p> 
+</h3>
 
 ### Built by 
 - Vaibhav Singh (vs2410)
