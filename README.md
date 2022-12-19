@@ -78,6 +78,10 @@ For Training and Inference of SRGAN model
 ```bash
 python3 train_srgan.py 
 ```
+For Training and Inference of SRGAN2 model
+```bash
+python3 train_srgan2.py 
+```
 
 
 <!---
