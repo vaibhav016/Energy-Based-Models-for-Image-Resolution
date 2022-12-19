@@ -39,6 +39,7 @@
     <p align="centre" > Typical Energy Surface Evolution </p>
     <img src="https://github.com/vaibhav016/Energy-Based-Models-for-Image-Resolution/blob/main/images/ebm.png" width="600" height="250" />
 </h4>
+
 ## Table of Contents
 
 <!-- TOC -->
@@ -73,20 +74,21 @@ For Training EBM based model
 ```bash
 python3 ebm.py -tr 1 
 ```
-For Training SRGAN model
+For Training and Inference of SRGAN model
 ```bash
-python3 train_srgan.py -tr 1 -d "data_path" 
+python3 train_srgan.py 
 ```
 
+
+<!---
+python3 train_srgan.py -tr 1 -d "data_path" 
+and here
+-->
 
 ### Inference 
 For Inference EBM based model 
 ```bash
 python3 ebm.py -tr 0
-```
-For Inference SRGAN model
-```bash
-python3 train_srgan.py -tr 0  
 ```
 
 ### Colab Notebooks
