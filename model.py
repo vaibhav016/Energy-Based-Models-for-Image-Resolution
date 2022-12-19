@@ -9,7 +9,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 
 from Sampler import Sampler
 import pytorch_lightning as pl
@@ -245,7 +244,7 @@ class DeepEnergyModel(pl.LightningModule):
         self.log('val_real_out', real_out.mean())
         
 
-#SR Resnet Generator for SR Gan
+#SR Resnet Generator for SRGAN
 class SRResNet(nn.Module):
     def __init__(
             self,
@@ -401,4 +400,50 @@ class Discriminator(nn.Module):
         out = torch.flatten(out, 1)
         out = self.classifier(out)
 
+        return out
+
+
+#Generator for SRGAN 2
+class SRResNet18(nn.Module):
+    def __init__(
+        self,
+        block=BasicBlock,
+        num_blocks=[1, 1, 1, 1, 1],
+        input_channel=64,
+        channels=[64, 128, 256, 384, 3],
+        #num_classes=1,
+    ):
+
+        super(SRResNet18, self).__init__()
+        self.in_planes = input_channel
+
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.layer1 = self._make_layer(block, channels[0], num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, channels[1], num_blocks[1], stride=1)
+        self.layer3 = self._make_layer(block, channels[2], num_blocks[2], stride=1)
+        self.layer4 = self._make_layer(block, channels[3], num_blocks[3], stride=1)
+        self.layer5 = self._make_layer(block, channels[4], num_blocks[4], stride=1)
+        #self.linear = nn.Linear(channels[3], 196608)#nn.Linear(channels[3]*4, num_classes)
+
+    def _make_layer(self, block, planes, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)), inplace=True)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        out = self.layer5(out)
+        # print(out.shape)
+        #out = F.avg_pool2d(out, 16)
+        # print(out.shape)
+        #out = out.view(out.size(0), -1)
+        #out = self.linear(out)
         return out
